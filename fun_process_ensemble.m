@@ -143,76 +143,66 @@ str_date = [datestr(date,11), datestr(date,5), datestr(date,7)];
 n_BESTS = [];
 % initialize parameter processing count
 m = 0;
-% initialize axes
-splot.xticks = {};
-splot.yticks = {};
-splot.zticks = {};
 %
-% *** initialize -- user options **************************************** %
+% *** initialize -- seed axis propoerties ******************************* %
 %
-% user-options for ensemble
-str_sep  = '.';   % seperator string (if any) between str_ensemble and ##
-str_data = '';    % data file name (if any)
-% user-options for axis labels (default strings will be set if empty)
-splot.xlabel = '';
-splot.ylabel = '';
-splot.zlabel = '';
-% seed dimensions
+% dimensions
 xmax=1;
 ymax=1;
 zmax=1;
+% axes
+splot.xticks = {''};
+splot.yticks = {''};
+splot.zticks = {''};
+% axis labels
+splot.xlabel = '';
+splot.ylabel = '';
+splot.zlabel = '';
 %
 % *** initialize -- extract ensemble info and populate axes ************* %
 %
 % NOTE: dimension length is equal to number of variables minus one
 %       (becasue the first is the parameter name)
-loc_params = fileread(sin.str_ensname);
-loc_params = regexp(loc_params, '\n', 'split');
-n_dim      = length(loc_params);
-for n=[1:n_dim]
-    loc_str = char(loc_params(n));
-    if (~isempty(loc_str))
-        loc_c = textscan(loc_str,'%s');
-        loc_c = loc_c{1};
-        n_var = length(loc_c);
-        if (n == 1) 
-            if (isempty(splot.xlabel)) splot.xlabel = char(loc_c{1}); end
-            splot.xticks = char(loc_c{2:n_var}); 
-            xmax = n_var - 1;
-        end
-        if (n == 2) 
-            if (isempty(splot.ylabel)) splot.ylabel = char(loc_c{1}); end
-            splot.yticks = char(loc_c{2:n_var}); 
-            ymax = n_var - 1;
-        end
-        if (n == 3)
-            if (isempty(splot.zlabel)) splot.zlabel = char(loc_c{1}); end
-            splot.zticks = char(loc_c{2:n_var});
-            zmax = n_var - 1;
+if exist(sin.str_ensname,'file')
+    loc_params = fileread(sin.str_ensname);
+    loc_params = regexp(loc_params, '\n', 'split');
+    n_dim      = length(loc_params);
+    for n=[1:n_dim]
+        loc_str = char(loc_params(n));
+        if (~isempty(loc_str))
+            loc_c = textscan(loc_str,'%s');
+            loc_c = loc_c{1};
+            n_var = length(loc_c);
+            if (n == 1)
+                if (isempty(splot.xlabel)) splot.xlabel = char(loc_c{1}); end
+                splot.xticks = char(loc_c{2:n_var});
+                xmax = n_var - 1;
+            end
+            if (n == 2)
+                if (isempty(splot.ylabel)) splot.ylabel = char(loc_c{1}); end
+                splot.yticks = char(loc_c{2:n_var});
+                ymax = n_var - 1;
+            end
+            if (n == 3)
+                if (isempty(splot.zlabel)) splot.zlabel = char(loc_c{1}); end
+                splot.zticks = char(loc_c{2:n_var});
+                zmax = n_var - 1;
+            end
         end
     end
+else
+    disp([' ** ERROR: Cannot find the ensemble definition file: ' sin.str_ensname]);
+    disp(['           (It is created by fun_make_ensemble and may be in the directory you created the ensemble in.)']);
+    disp([' ']);
+    return;
 end
 %
 % --- STEP #1 ----------------------------------------------------------- %
 % define time-series variables to extract and plot
 % -- see help for examples
 % NOTE: remember that m must be incremented by 1 for each added variable
-% \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-% global mean temp
-m = m+1;
-data(m).dataname = 'ocn_temp';
-data(m).datacol  = 2;
-data(m).scale    = 1.0;
-data(m).dataunit = '(oC)';
-data(m).minmax   = [0 20];
-% global mean [O2]
-m = m+1;
-data(m).dataname = 'ocn_O2';
-data(m).datacol  = 3;
-data(m).scale    = 1.0E+6;
-data(m).dataunit = '(umol kg-1)';
-data(m).minmax   = [100 300];
-% /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+% \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+% /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 %
 % set number of time-series data
 n_par_ts = m;
@@ -221,8 +211,8 @@ n_par_ts = m;
 % define netCDF variables to extract and plot/analyse
 % -- see help for examples
 % NOTE: remember that m must be incremented by 1 for each added variable
-% \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-% /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+% \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+% /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 %
 % *** initialize -- process user options ******************************** %
 %
@@ -250,7 +240,7 @@ loc_years   = num2cell(repmat(sin.year,1,n_par));
 %
 % create an array of zeros associated with each parameter
 for n=1:n_par
-    data(n).array = zeros(ymax,xmax);
+    data(n).array = zeros(zmax,ymax,xmax);
 end
 %
 % *********************************************************************** %
@@ -338,8 +328,8 @@ for z=1:zmax
                 else
                     % --- STEP #4b -------------------------------------- %
                     % extract and plot/analyse netCDF variables
-                    % \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-                    % /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+                    % \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+                    % /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
                     if (n ~= n_par)
                         % ERROR (fatal)
                         disp([' ** ERROR: Inconsistency in the number of processed variables']);
@@ -369,10 +359,10 @@ end
 % *********************************************************************** %
 
 % *********************************************************************** %
-% *** PLOT 2D ENSEMBLE DATA ********************************************* %
+% *** PLOT 2D SLICES OF ENSEMBLE DATA *********************************** %
 % *********************************************************************** %
 %
-if (zmax == 1)
+for z=1:zmax
     % create gridded plots of ensemble
     % NOTE: PRESCRIBED SCALE
     % NTOE: use squeeze to turn 1xYxX -> YxX
@@ -384,13 +374,18 @@ if (zmax == 1)
             end
         end
         % construct filename and create plot
-        splot.filename = [sin.str_outname  '.' data(n).dataname '.' num2str(data(n).datacol)];
+        splot.filename = [sin.str_outname  '.' data(n).dataname '.' num2str(data(n).datacol) '.z_' hex2str(z)];
         splot.unitslabel = data(n).dataunit;
-        plot_2dgridded2(squeeze(data(n).array(1,:,:)),data(n).minmax,'',splot);
+        % extract a usable 2D array
+        loc_data = squeeze(data(n).array(z,:,:));
+        if (ymax == 1)
+            loc_data = loc_data';
+        end
+        plot_2dgridded2(loc_data,data(n).minmax,'',splot);
         % save data
         % NOTE: y-axis is opposite to as displayed in the plot
         %      (counting rows down)
-        fprint_2DM(data(n).array(1,:,:),[],[splot.filename '.dat'],'%10.4f','%10.4f',true,false);
+        fprint_2DM(loc_data,[],[splot.filename '.dat'],'%10.4f','%10.4f',true,false);
     end
 end
 %
@@ -406,29 +401,31 @@ for n=1:length(n_BESTS)
     %
     % *** find best ensemble member ************************************* %
     %
-    mss_BEST = max(max(data(n_BEST).array)); % best model skill score
+    mss_BEST = max(data(n_BEST).array,[],'all'); % best model skill score
     I = find(data(n_BEST).array == mss_BEST);
-    [n_z,n_y,n_x] = ind2sub([zmax ymax xmax],I);
+    [loc_z,loc_y,loc_x] = ind2sub([zmax ymax xmax],I);
     %
     % *** print best stats ********************************************** %
     %
-    fid = fopen([str_outname '.' data(n_BEST).dataname '.' num2str(n_z) num2str(n_y) num2str(n_x) '.STATS.txt'], 'wt');
+    fid = fopen([sin.str_outname '.' data(n_BEST).dataname '.' hex2str(loc_z) hex2str(loc_y) hex2str(loc_x) '.STATS.txt'], 'wt');
     fprintf(fid, '\n');
     fprintf(fid, '=== MSS STATS SUMMARY === \n');
     fprintf(fid, '\n');
-    fprintf(fid, 'Best (x,y) : %d %d \n', n_z,n_y,n_x);
-    fprintf(fid, '(ensemble notation: .%d%d ) \n', n_z,n_y,n_x);
-    fprintf(fid, 'Best %s %s \n', char(splot.xlabel),char(splot.xticks(n_x)));
-    fprintf(fid, 'Best %s %s \n', char(splot.ylabel),char(splot.yticks(n_y)));  
-    fprintf(fid, 'Best %s %s \n', char(splot.zlabel),char(splot.zticks(n_z)));   
+    fprintf(fid, ['Best ensemble member (z,y,x) : ' hex2str(loc_z) hex2str(loc_y) hex2str(loc_x) '\n']); 
+    fprintf(fid, ' >  x: %s %s \n', char(splot.xlabel),char(splot.xticks(loc_x,:)));
+    fprintf(fid, ' >  y: %s %s \n', char(splot.ylabel),char(splot.yticks(loc_y,:)));
+    fprintf(fid, ' >  z: %s %s \n', char(splot.zlabel),char(splot.zticks(loc_z,:)));    
     fprintf(fid, '\n');
     fprintf(fid, '------------------------- \n');
+    fprintf(fid, 'Best individual M-scaores: \n');
     for n=1:n_par
-        fprintf(fid, [data(n).dataname ' = %8.4f \n'], data(n).array(n_z,n_y,n_x));
+        fprintf(fid, [data(n).dataname ' = %8.4f \n'], data(n).array(loc_z,loc_y,loc_x));
     end
-    fprintf(fid, '------------------------- \n');
-    fprintf(fid, 'BEST: \n');
-    fprintf(fid, [data(n_BEST).dataname ' = %8.4f \n'], data(n_BEST).array(n_z,n_y,n_x));
+    if (n_par > 1)
+        fprintf(fid, '------------------------- \n');
+        fprintf(fid, 'Overall best: \n');
+        fprintf(fid, [data(n_BEST).dataname ' = %8.4f \n'], data(n_BEST).array(loc_z,loc_y,loc_x));
+    end
     fprintf(fid, '------------------------- \n');
     fprintf(fid, '\n');
     fprintf(fid, '========================= \n');
@@ -439,32 +436,29 @@ for n=1:length(n_BESTS)
     %
     % NOTE: we already know that the 'best' experiment must exist!
     % re-create experiment name
-    loc_str_exp = [str_ensemble '.' num2str(n_z) num2str(n_y) num2str(n_x)];
+    loc_str_exp = [sin.str_ensname '.' hex2str(loc_z) hex2str(loc_y) hex2str(loc_x)];
     % test for occurrence of tar.gz extension
-    if exist([str_dir '/' loc_str_exp],'dir')
+    if exist([sin.str_expdir '/' loc_str_exp],'dir')
         loc_flag_unpack = false;
-    elseif exist([str_dir '/' [loc_str_exp str_archive]],'file')
-        disp(['    UN-PACKING ...']);
-        untar([str_dir '/' [loc_str_exp str_archive]],str_dir);
-        loc_flag_unpack = true;
     else
-        % ERROR
-        disp([' ** ERROR: Cannot find either results directory or archives file of experiment: ' loc_str_exp]);
-        disp([' ']);
-        return;
+        disp(['    UN-PACKING ...']);
+        untar([sin.str_expdir '/' [loc_str_exp sin.str_archext]],sin.str_expdir);
+        loc_flag_unpack = true;
     end
+    % create output filename
+    loc_str_name = [sin.str_outname '.' data(n_BEST).dataname '.' hex2str(loc_z) hex2str(loc_y) hex2str(loc_x) '.BEST'];
     %
     % *** analyse ******************************************************* %
     %
-    loc_str_name = [str_name '.' data(n_BEST).dataname '.' num2str(n_z) num2str(n_y) num2str(n_x)];
+    % \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\
+    % /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\\/\/\/\/\/\/\
     %
     % *** clean up ****************************************************** %
     %
-    % (optional) remove unpacked dir
+    % remove unpacked dir
     if loc_flag_unpack
-        disp(['    KEEP UNPACKED BEST RUN!']);
-        %     disp(['    REMOVE DIR']);
-        %     rmdir([str_dir '/' loc_str_exp],'s');
+        disp(['    REMOVE DIR']);
+         rmdir([sin.str_expdir '/' loc_str_exp],'s');
     end
     %
     % ******************************************************************* %

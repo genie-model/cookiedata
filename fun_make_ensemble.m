@@ -90,55 +90,47 @@ str_date = [datestr(date,11), datestr(date,5), datestr(date,7)];
 % get number of lines in config file
 loc_params = fileread(str_file);
 loc_params = regexp(loc_params, '\n', 'split');
-n_lines = length(loc_params);
+l_lines = length(loc_params);
 % filter comment lines
-for n=[n_lines:-1:1]
-    loc_str = char(loc_params(n));
+for l=[l_lines:-1:1]
+    loc_str = char(loc_params(l));
     if (strcmp('%',loc_str(1)))
-        loc_params(n) = [];
-        n_lines = n_lines - 1;
+        loc_params(l) = [];
+        l_lines = l_lines - 1;
     end
 end
 % parse strings
-for n=[1:n_lines]
-    loc_str = char(loc_params(n));
+for l=[1:l_lines]
+    loc_str = char(loc_params(l));
     loc_c = textscan(loc_str,'%s');
     loc_c = loc_c{1};
     n_var = length(loc_c);
     % create structure data
-    s(n).id = str2num(cell2mat(loc_c(1)));
-    s(n).paramname = char(loc_c{2});
-    s(n).defaultvalue = str2double(cell2mat(loc_c(3)));
+    s(l).id = str2num(cell2mat(loc_c(1)));
+    s(l).paramname = char(loc_c{2});
+    s(l).defaultvalue = str2double(cell2mat(loc_c(3)));
     loc_v = [];
     for m=[4:n_var]
         loc_v = [loc_v str2double(cell2mat(loc_c(m)))];
     end
-    s(n).vector = loc_v;
-    if ((n > 1) && (s(n).id == s(n-1).id))
-        s(n).unique = false;
+    s(l).vector = loc_v;
+    if ((l > 1) && (s(l).id == s(l-1).id))
+        s(l).unique = false;
     else
-        s(n).unique = true;
+        s(l).unique = true;
     end
 end
-% set number of dimenions (3!)
-par_nmax = 3;
 % determine total number of parameters
 par_pmax = length([s(:).id]);
-% if any dimension is empty => populate with a single dummy parameter value
-for n=1:par_nmax
-    if (length(s) < n)
-        s(n).id = n;
-        s(n).paramname = '%NONE';
-        s(n).defaultvalue = 0.0;
-        s(n).vector = [0.0];
-        s(n).unique = true;
-    end
-end
+% determine number of dimensions used
+par_dmax = max([s(:).id]);
 % determine number of parameter modifications to make (for each parameter)
-for n=1:par_nmax
-    loc_v = find([s(:).id] == n);
-    loc_n = loc_v(1);
-    par_vmax(n) = length(s(loc_n).vector);
+% NOTE: seed dimensions vector first
+par_vmax = [1 1 1];
+for d=1:par_dmax
+    loc_v = find([s(:).id] == d);
+    loc_p = loc_v(1);
+    par_vmax(d) = length(s(loc_p).vector);
 end
 %
 % *** create ensemble parameter filename string ************************* %
@@ -158,6 +150,7 @@ for o=1:par_vmax(3)
     for n=1:par_vmax(2)
         for m=1:par_vmax(1)
             % create a vector of where we are in the nested loop
+            % NOTE: parammeter #1 == m and hence index 1
             loc_vn = [m n o];
             % copy template
             str_templatefilein  = [str_template];
@@ -204,6 +197,7 @@ for p=1:par_pmax
     loc_str = [s(p).paramname ' ' num2str(s(p).defaultvalue*s(p).vector)];
     fprintf(fid0, '%s\n', loc_str);    
 end
+fclose(fid0);
 %
 % *** write ensemble parameter key file ********************************* %
 %
@@ -217,31 +211,30 @@ loc_str = ['     template user-config filename    : ' str_template];
 fprintf(fid0, '%s\n', loc_str);
 loc_str = ['     parameter specification filename : ' str_file];
 fprintf(fid0, '%s\n', loc_str);
-for n=1:par_pmax
-    if (s(n).unique)
+for p=1:par_pmax
+    if (s(p).unique)
         loc_str = [' -----------------------------------------------------------'];
         fprintf(fid0, '%s\n', loc_str);
-        loc_str = ['     ensemble axis #' num2str(s(n).id)];
+        loc_str = ['     ensemble axis #' num2str(s(p).id)];
         fprintf(fid0, '%s\n', loc_str);
     end
-    loc_str = ['     parameter                        : ' s(n).paramname];
+    loc_str = ['     parameter                        : ' s(p).paramname];
     fprintf(fid0, '%s\n', loc_str);    
-    loc_str = ['     default value                    : ' num2str(s(n).defaultvalue)];
+    loc_str = ['     default value                    : ' num2str(s(p).defaultvalue)];
     fprintf(fid0, '%s\n', loc_str);    
-    loc_str = ['     parameter modifiers              : ' num2str(s(n).vector)];
+    loc_str = ['     parameter modifiers              : ' num2str(s(p).vector)];
     fprintf(fid0, '%s\n', loc_str);    
 end
 loc_str = [' ***********************************************************'];
 fprintf(fid0, '%s\n', loc_str);
-loc_str = ['     individual ensemble members (x,y,z):'];
+loc_str = ['     individual ensemble members (z,y,x):'];
 fprintf(fid0, '%s\n', loc_str);
-for m=1:par_vmax(1)
+for o=1:par_vmax(3)
     for n=1:par_vmax(2)
-        for o=1:par_vmax(3)
-            % % modify m,n,o for the purpose of file naming
-            % if (par_vmax(1) == 1), m = 0; end
-            % if (par_vmax(2) == 1), n = 0; end
-            % if (par_vmax(3) == 1), o = 0; end
+        for m=1:par_vmax(1)
+            % create a vector of where we are in the nested loop
+            % NOTE: parammeter #1 == m and hence index 1
+            loc_vn = [m n o];
             % add ensemble key file info
             loc_str = ['member #' hex2str(o) hex2str(n) hex2str(m) ':'];
             fprintf(fid0, '%s\n', loc_str);
