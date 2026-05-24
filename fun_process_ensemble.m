@@ -32,57 +32,57 @@ function [] = fun_process_ensemble(DUM_S)
 % 
 %   EXAMPLE time-series:
 %
-%   % atmopsheric pCO2
 %   m = m+1;
+%   data(m).title    = 'atmopsheric pCO2';
 %   data(m).dataname = 'atm_pCO2';
 %   data(m).datacol  = 3;
 %   data(m).scale    = 1.0E6;
 %   data(m).dataunit = 'pCO_2 (ppm)';
 %   data(m).minmax   = [180 280];
-%   % atmopsheric pCO2 d13C
 %   m = m+1;
+%   data(m).title    = 'atmopsheric pCO2 d13C';
 %   data(m).dataname = 'atm_pCO2_13C';
 %   data(m).datacol  = 3;
 %   data(m).scale    = 1.0;
 %   data(m).dataunit = 'pCO_2 \delta^{13}C (o/oo)';
 %   data(m).minmax   = [-7.0 -6.0];
-%   % global POC export
 %   m = m+1;
+%   data(m).title    = 'global POC export';
 %   data(m).dataname = 'fexport_POC';
 %   data(m).datacol  = 2;
 %   data(m).scale    = 12.0E-15;
 %   data(m).dataunit = 'POC export (PgC yr^{-1})';
 %   data(m).minmax   = [6.0 12.0];
-%   % global mean [O2]
 %   m = m+1;
+%   data(m).title    = 'global mean [O2]';
 %   data(m).dataname = 'ocn_O2';
 %   data(m).datacol  = 3;
 %   data(m).scale    = 1.0E+6;
 %   data(m).dataunit = '[O_2] (\mumol kg^{-1})';
 %   data(m).minmax   = [120 180];
-%   % AMOC
 %   m = m+1;
+%   data(m).title    = 'AMOC';
 %   data(m).dataname = 'AMOC strength';
 %   data(m).datacol  = 0;
 %   data(m).scale    = 1.0;
 %   data(m).dataunit = 'AMOC (Sv)';
 %   data(m).minmax   = [0 20];
-%   % model skill score of global ocean salinty
 %   m = m+1;
+%   data(m).title    = 'model skill score of global ocean salinty';
 %   data(m).dataname = 'ocn_sal';
 %   data(m).datacol  = 0;
 %   data(m).scale    = 1.0;
 %   data(m).dataunit = 'MSS (n/a)';
 %   data(m).minmax   = [0.45 0.55];
-%   % model skill score of global ocean PO4
 %   m = m+1;
+%   data(m).title    = 'model skill score of global ocean PO4';
 %   data(m).dataname = 'ocn_PO4';
 %   data(m).datacol  = 0;
 %   data(m).scale    = 1.0;
 %   data(m).dataunit = 'MSS (n/a)';
 %   data(m).minmax   = [0.6 0.7];
-%   % model skill score of global ocean O2
 %   m = m+1;
+%   data(m).title    = 'model skill score of global ocean O2';
 %   data(m).dataname = 'ocn_O2';
 %   data(m).datacol  = 0;
 %   data(m).scale    = 1.0;
@@ -374,8 +374,9 @@ for z=1:zmax
             end
         end
         % construct filename and create plot
-        splot.filename = [sin.str_outname  '.' data(n).dataname '.' num2str(data(n).datacol) '.z_' hex2str(z)];
+        splot.filename   = [sin.str_outname  '.' data(n).dataname '.' num2str(data(n).datacol) '.z_' hex2str(z)];
         splot.unitslabel = data(n).dataunit;
+        splot.title      = data(n).title;
         % extract a usable 2D array
         loc_data = squeeze(data(n).array(z,:,:));
         if (ymax == 1)
