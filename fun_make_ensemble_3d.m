@@ -1,4 +1,4 @@
-function [] = fun_make_ensemble(STR_TEMPLATE,STR_PARAMS)
+function [] = fun_make_ensemble_3d(STR_TEMPLATE,STR_PARAMS)
 %
 %   ***********************************************************************
 %   *** fun_make_ensemble *************************************************
