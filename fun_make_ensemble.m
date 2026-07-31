@@ -1,4 +1,4 @@
-function [] = fun_make_ensemble(STR_TEMPLATE,STR_PARAMS)
+function [] = fun_make_ensemble(str_templatefile,str_parameterfile,str_id)
 %
 %   ***********************************************************************
 %   *** fun_make_ensemble *************************************************
@@ -10,15 +10,16 @@ function [] = fun_make_ensemble(STR_TEMPLATE,STR_PARAMS)
 %   The resulting ensemble can be submitted by modifying the BASH script:
 %   sub_ens.muffin.sh
 %
-%   STR_TEMPLATE == full filename of the 'template' (default) user-config
-%                   NOTE: this filename can be anything you want and
-%                         will not form part of the ensemble name
-%   STR_PARAMS   == full filename of the parameter configuration file
-%                   NOTE: this filename can be anything you want, but:
-%                         (i)  it will form the ensemble name
-%                         (ii) if it ends in '.dat' or '.txt', the
-%                              extension will be stripped out of the
-%                              saved ensemble member filenames
+%   str_templatefile    ==  full filename of the 'template' (default) user-config
+%                           NOTE:   this filename can be anything you want and
+%                                   will not form part of the ensemble name
+%   str_parameterfile   ==  full filename of the parameter configuration file
+%                           NOTE:   this filename can be anything you want, but:
+%                                   (i)  it will form the ensemble name
+%                                   (ii) if it ends in '.dat' or '.txt', the
+%                                       extension will be stripped out of the
+%                                       saved ensemble member filenames
+%   str_id              ==  optional string to replace the date in file naming
 %
 %   fun_make_ensemble must be run form the same directory that contains:
 %   (a) the 'template' (default) user-config file
@@ -70,6 +71,8 @@ function [] = fun_make_ensemble(STR_TEMPLATE,STR_PARAMS)
 %   26/01/18:   adapted from fun_make_ensemble_2d to 3d
 %   26/07/02:   removed default parameter value,
 %               added the option for parameter values to be strings
+%   26/07/29:   rename dummay variables
+%               added 3rd optional parameter
 %
 %   ***********************************************************************
 
@@ -79,17 +82,18 @@ function [] = fun_make_ensemble(STR_TEMPLATE,STR_PARAMS)
 %
 % *** initialize ******************************************************** %
 %
-% set template user-config filename
-str_template = STR_TEMPLATE;
-% set parameter definition filename string
-str_file = STR_PARAMS;
-% set date
-str_date = [datestr(date,11), datestr(date,5), datestr(date,7)];
+% parse dummy variables
+% NOTE: the default output filename ID is the current date
+arguments
+    str_templatefile char     % template user-config filename
+    str_parameterfile char    % parameter definition filename string
+    str_id char = [datestr(date,11), datestr(date,5), datestr(date,7)]
+end
 %
 % *** load ensemble parameter file ************************************** %
 %
 % get number of lines in config file
-loc_params = fileread(str_file);
+loc_params = fileread(str_parameterfile);
 loc_params = regexp(loc_params, '\n', 'split');
 l_lines = length(loc_params);
 % filter comment lines
@@ -139,9 +143,9 @@ end
 %
 % *** create ensemble parameter filename string ************************* %
 %
-str_name = str_file;
-if (strcmp(str_file(end-3:end),'.dat')), str_name = str_file(1:end-4); end
-if (strcmp(str_file(end-3:end),'.txt')), str_name = str_file(1:end-4); end
+str_name = str_parameterfile;
+if (strcmp(str_parameterfile(end-3:end),'.dat')), str_name = str_parameterfile(1:end-4); end
+if (strcmp(str_parameterfile(end-3:end),'.txt')), str_name = str_parameterfile(1:end-4); end
 %
 % *********************************************************************** %
 
@@ -157,8 +161,8 @@ for o=1:par_vmax(3)
             % NOTE: parammeter #1 == m and hence index 1
             loc_vn = [m n o];
             % copy template
-            str_templatefilein  = [str_template];
-            str_templatefileout = [str_date '.' str_name '.' hex2str(o) hex2str(n) hex2str(m)];
+            str_templatefilein  = [str_templatefile];
+            str_templatefileout = [str_id '.' str_name '.' hex2str(o) hex2str(n) hex2str(m)];
             copyfile(str_templatefilein,str_templatefileout,'f');
             % open sesame! (file pipe of ensemble member user-config)
             fid = fopen(str_templatefileout, 'a+');
@@ -201,7 +205,7 @@ end
 %
 % *** write ensemble parameter info file ******************************** %
 %
-str_infofile = [str_date '.' str_name];
+str_infofile = [str_id '.' str_name];
 fid0 = fopen(str_infofile, 'w');
 for p=1:par_pmax
     loc_char = [s(p).paramname ' ' char(join(s(p).vstring))];
@@ -211,15 +215,15 @@ fclose(fid0);
 %
 % *** write ensemble parameter key file ********************************* %
 %
-str_keyfile = [str_date '.' str_name '.KEY.txt'];
+str_keyfile = [str_id '.' str_name '.KEY.txt'];
 fid0 = fopen(str_keyfile, 'w');
 loc_str = [' ***********************************************************'];
 fprintf(fid0, '%s\n', loc_str);
-loc_str = ['     ensemble name                    : ' str_date '.' str_name];
+loc_str = ['     ensemble name                    : ' str_id '.' str_name];
 fprintf(fid0, '%s\n', loc_str);
-loc_str = ['     template user-config filename    : ' str_template];
+loc_str = ['     template user-config filename    : ' str_templatefile];
 fprintf(fid0, '%s\n', loc_str);
-loc_str = ['     parameter specification filename : ' str_file];
+loc_str = ['     parameter specification filename : ' str_parameterfile];
 fprintf(fid0, '%s\n', loc_str);
 for p=1:par_pmax
     if (s(p).unique)
